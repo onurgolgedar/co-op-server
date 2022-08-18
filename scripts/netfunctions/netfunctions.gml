@@ -71,8 +71,7 @@ function net_server_send() {
 	else
 		network_send_packet(socketID, buffer, buffer_tell(buffer))
 
-	if (buffer != undefined)
-		buffer_delete(buffer)
+	buffer_delete(buffer)
 }
 
 

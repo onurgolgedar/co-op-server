@@ -1,6 +1,16 @@
 function _net_receive_packet(code, pureData, socketID_sender, bufferInfo = BUFFER_INFO_DEFAULT, bufferType, asyncMap, coopInfo = BUFFER_INFO_DEFAULT) {
-	var port = asyncMap[? "port"]
-	var fromHost = port == PORT_TCP or port == PORT_UDP
+	var isSenderHost, sendersHost, sendersSocketID_inHost
+	var row_sender = db_get_row(global.DB_TABLE_clients, socketID_sender)
+	if (row_sender[? CLIENTS_IS_HOST] != undefined) {
+		isSenderHost = row_sender[? CLIENTS_IS_HOST]
+		sendersHost = row_sender[? CLIENTS_HOST]
+		sendersSocketID_inHost = row_sender[? CLIENTS_SOCKETID_IN_HOST]
+	}
+	else {
+		isSenderHost = undefined
+		sendersHost = undefined
+	}
+	
 	var isUDP = false
 	var ip = asyncMap[? "ip"]
 	
@@ -8,7 +18,11 @@ function _net_receive_packet(code, pureData, socketID_sender, bufferInfo = BUFFE
 	var dataWillBeDeleted = false
 	#region PARSE PARAMETERS
 	var parameterCount = 0
-	if (coopInfo == BUFFER_INFO_DEFAULT and !fromHost and is_string(pureData)) {
+	if ((code == CODE_HOST_COOP or 
+		 code == _CODE_SIGNUP or 
+		 code == _CODE_LOGIN or 
+		 code == CODE_CONNECT or
+		 code == CODE_REQUEST_JOIN_COOP) and is_string(pureData)) {
 		if (string_char_at(pureData, 0) == "{" or string_char_at(pureData, 0) == "[") {
 			dataWillBeDeleted = true
 			data = json_parse(pureData)
@@ -26,59 +40,88 @@ function _net_receive_packet(code, pureData, socketID_sender, bufferInfo = BUFFE
 
 	try {
 		switch(code) {
-			case CODE_HOST_COOP:
-				var row = db_get_row(global.DB_TABLE_clients, socketID_sender)
-				row[? CLIENTS_HOST] = true
-				row[? CLIENTS_COOPID] = data
+			case CODE_AVAILABLE_GAMES_COOP:
+				var availableGames = ds_list_create()
 				
-				net_server_send(socketID_sender, CODE_HOST_COOP, data, BUFFER_TYPE_FLOAT64)
-				break
-				
-			case CODE_CONNECT:
-				var socketID = db_find_value(global.DB_TABLE_clients, CLIENTS_SOCKETID, CLIENTS_SOCKETID_ON_COOP, socketID_sender)
-				db_set_row_value(global.DB_TABLE_clients, socketID, CLIENTS_SOCKETID_ON_SERVER, data)
-				
-				net_server_send(socketID, CODE_CONNECT, data, BUFFER_TYPE_FLOAT64)
-				break
-				
-			case CODE_JOIN_COOP:
-				var row = undefined
-				var ds_size = ds_list_size(global.DB_TABLE_clients.rows)
+				var ds_keys = ds_map_keys_to_array(global.DB_TABLE_clients.rows)
+				var ds_size = array_length(ds_keys)
 				for (var i = 0; i < ds_size; i++) {
-					var _row = global.DB_TABLE_clients.rows[| i]
+					var _row = global.DB_TABLE_clients.rows[? ds_keys[i]]
+					
+					if (_row[? CLIENTS_IS_HOST] == true and _row[? CLIENTS_COOPID] != undefined and _row[? CLIENTS_COOPID] != "" and _row[? CLIENTS_COOPPASSWORD] == "")
+						ds_list_add(availableGames, _row[? CLIENTS_COOPID])
+				}
 	
-					if (_row[? CLIENTS_HOST] == true and _row[? CLIENTS_COOPID] == data) {
-						row = _row
+				net_server_send(socketID_sender, CODE_AVAILABLE_GAMES_COOP, ds_list_write(availableGames), BUFFER_TYPE_STRING)
+				ds_list_destroy(availableGames)
+				break
+			
+			case CODE_HOST_COOP:
+				var coopID = socketID_sender*10000+0
+				row_sender[? CLIENTS_IS_HOST] = true
+				row_sender[? CLIENTS_COOPID] = coopID
+				row_sender[? CLIENTS_COOPPASSWORD] = ""
+				
+				net_server_send(socketID_sender, CODE_HOST_COOP, json_stringify({ coopID: coopID, coopPassword: ""} ), BUFFER_TYPE_STRING)
+				break
+				
+			case _CODE_SIGNUP:
+				var row_host = undefined
+
+				var ds_keys = ds_map_keys_to_array(global.DB_TABLE_clients.rows)
+				var ds_size = array_length(ds_keys)
+				for (var i = 0; i < ds_size; i++) {
+					var _row = global.DB_TABLE_clients.rows[? ds_keys[i]]
+	
+					if (_row[? CLIENTS_IS_HOST] == true and _row[? CLIENTS_COOPID] == data.coopID) {
+						row_host = _row
 						break
 					}
 				}
 				
-				if (row != undefined) {
-					var serverIP = row[? CLIENTS_IP]
-					var socketID_on_coop = network_create_socket(network_socket_tcp)
-					
-					if (network_connect(socketID_on_coop, serverIP, PORT_TCP) >= 0) {
-						db_set_row_value(global.DB_TABLE_clients, socketID_sender, CLIENTS_SOCKETID_ON_COOP, socketID_on_coop)
-						db_set_row_value(global.DB_TABLE_clients, socketID_sender, CLIENTS_COOPID, data)
-						db_set_row_value(global.DB_TABLE_clients, socketID_sender, CLIENTS_HOST, false)
+				net_server_send(row_host[? CLIENTS_SOCKETID], CODE_SIGNUP_COOP, json_stringify(data), bufferType, false, socketID_sender)
+				break
+				
+			case _CODE_LOGIN:			
+				net_server_send(sendersHost, code, json_stringify(data), bufferType, false, bufferInfo, sendersSocketID_inHost)
+				break
+				
+			case CODE_CONNECT:
+				db_set_row_value(global.DB_TABLE_clients, coopInfo, CLIENTS_SOCKETID_IN_HOST, data)
+				net_server_send(coopInfo, code, data, bufferType, false, bufferInfo, coopInfo)
+				break
+				
+			case CODE_REQUEST_JOIN_COOP:
+				var row_host = undefined
+
+				var ds_keys = ds_map_keys_to_array(global.DB_TABLE_clients.rows)
+				var ds_size = array_length(ds_keys)
+				for (var i = 0; i < ds_size; i++) {
+					var _row = global.DB_TABLE_clients.rows[? ds_keys[i]]
+	
+					if (_row[? CLIENTS_IS_HOST] == true and _row[? CLIENTS_COOPID] == data) {
+						row_host = _row
+						break
 					}
+				}
+				
+				if (row_host != undefined) {
+					db_set_row_value(global.DB_TABLE_clients, socketID_sender, CLIENTS_IS_HOST, false)
+					db_set_row_value(global.DB_TABLE_clients, socketID_sender, CLIENTS_HOST, _row[? CLIENTS_SOCKETID])
+					
+					net_server_send(row_host[? CLIENTS_SOCKETID], CODE_JOIN_COOP, json_stringify({ coopID: data, hostsSocketID_inCoop: row_host[? CLIENTS_SOCKETID], participantSocketID_inCoop: socketID_sender }), BUFFER_TYPE_STRING)
 				}
 				break
 				
 			default:
-				if (fromHost) {
-					if (code != CODE_CONNECT) {
-						if (coopInfo == BUFFER_INFO_DEFAULT)
-							coopInfo = db_find_value(global.DB_TABLE_clients, CLIENTS_SOCKETID, CLIENTS_SOCKETID_ON_COOP, socketID_sender)
-						if (coopInfo != undefined)
-							net_server_send(coopInfo, code, data, bufferType, false, bufferInfo, coopInfo)
-					}
+				if (isSenderHost) {
+					if (coopInfo != undefined)
+						net_server_send(coopInfo, code, data, bufferType, false, bufferInfo, coopInfo)
+					else
+						show_debug_message("undefined coopInfo: "+string(code))
 				}
-				else {
-					var socketID_on_coop = db_get_value_by_key(global.DB_TABLE_clients, socketID_sender, CLIENTS_SOCKETID_ON_COOP)
-					if (socketID_on_coop != undefined) 
-						net_client_send(code, data, bufferType, isUDP ? ip_sender : false, socketID_on_coop, bufferInfo, coopInfo)
-				}
+				else
+					net_server_send(sendersHost, code, data, bufferType, isUDP ? ip_sender : false, bufferInfo, sendersSocketID_inHost)
 				break
 		}
 		

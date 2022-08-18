@@ -2,7 +2,14 @@ function NetCodes() {
 	#macro CODE_CONNECT 0
 	#macro CODE_CONNECT_COOP 1
 	#macro CODE_DISCONNECT 2
+	#macro _CODE_DISCONNECT 255-2
+	
+	#macro _CODE_LOGIN 255-10
+	#macro _CODE_SIGNUP 255-12
 
 	#macro CODE_HOST_COOP 3
 	#macro CODE_JOIN_COOP 4
+	#macro CODE_REQUEST_JOIN_COOP 5
+	#macro CODE_AVAILABLE_GAMES_COOP 6
+	#macro CODE_SIGNUP_COOP 7
 }

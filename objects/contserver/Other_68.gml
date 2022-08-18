@@ -24,6 +24,13 @@ if (port == PORT_TCP_COOP or port == PORT_UDP_COOP or port == PORT_TCP or port =
 		
 		case network_type_disconnect:
 			_net_event_disconnect(load_buffer, load_id, load_socketID, load_ip)
+			
+			var socketID_host = db_get_value_by_key(global.DB_TABLE_clients, load_socketID, CLIENTS_HOST)
+			if (socketID_host != undefined) {
+				var socketIDClient_inHost = db_get_value_by_key(global.DB_TABLE_clients, load_socketID, CLIENTS_SOCKETID_IN_HOST)
+				net_server_send(socketID_host, _CODE_DISCONNECT, load_socketID, BUFFER_TYPE_INT16, false, BUFFER_INFO_DEFAULT, socketIDClient_inHost)
+			}
+
 			server_remove_client(load_socketID)
 			
 			net_server_send(load_socketID, CODE_DISCONNECT, load_socketID, BUFFER_TYPE_INT16)

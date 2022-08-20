@@ -30,5 +30,5 @@ function server_get_from_client(primaryValue, column) {
 function server_remove_client(socketID) {
 	var rowIndex = db_delete_row(global.DB_TABLE_clients, socketID)
 	if (rowIndex != -1)
-		show_debug_message("A player has been removed. {SocketID: " + string(socketID) + "}")
+		show_debug_message("A client has been removed. {SocketID: " + string(socketID) + "}")
 }

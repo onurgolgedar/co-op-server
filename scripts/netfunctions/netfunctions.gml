@@ -1,3 +1,29 @@
+/*function net_client_send(code, data = 0, bufferType = BUFFER_TYPE_BOOL, isUDP = false, bufferInfo = BUFFER_INFO_DEFAULT, forceCOOP = false, coopInfo = BUFFER_INFO_DEFAULT) {
+	var buffer = net_make_buffer(code, data, bufferType, bufferInfo, coopInfo)
+
+	var socket = global.socket
+	if (isUDP)
+		network_send_udp(socket, global.serverIP, global.mainUDP_port, buffer, buffer_tell(buffer))
+	else
+		network_send_packet(socket, buffer, buffer_tell(buffer))
+			
+	buffer_delete(buffer)
+}*/
+
+function net_server_send(socketID, code, data = 0, bufferType = BUFFER_TYPE_BOOL, isUDP = false, location = 0, bufferInfo = BUFFER_INFO_DEFAULT, coopInfo = BUFFER_INFO_DEFAULT) {
+	var buffer = net_make_buffer(code, data, bufferType, bufferInfo, coopInfo)
+			
+	if (isUDP) {
+		var _playerRow = db_get_row(global.DB_TABLE_clients, socketID)
+		if (_playerRow != undefined)
+			network_send_udp(socketID, _playerRow[? CLIENTS_IP], PORT_UDP_COOP, buffer, buffer_tell(buffer))
+	}
+	else
+		network_send_packet(socketID, buffer, buffer_tell(buffer))
+
+	buffer_delete(buffer)
+}
+
 function net_buffer_read(buffer) {
 	buffer_seek(buffer, buffer_seek_start, 0)
 	var bufferType = net_buffer_get_type(buffer_read(buffer, buffer_u8))
@@ -16,64 +42,6 @@ function net_buffer_read(buffer) {
 	else
 		return undefined
 }
-
-/// @param code
-/// @param data* (req: bufferType)
-/// @param bufferType*
-/// @param isUDP*
-/// @param socketID*
-/// @param bufferInfo*
-/// @param coopInfo*
-function net_client_send() {
-	var code = argument[0]
-	var bufferInfo = argument_count < 6 ? BUFFER_INFO_DEFAULT : argument[5]
-	var coopInfo = argument_count < 7 ? BUFFER_INFO_DEFAULT : argument[6]
-	var data = argument_count == 1 ? 0 : argument[1]
-	var bufferType = argument_count == 1 ? BUFFER_TYPE_BOOL : argument[2]
-	var isUDP = argument_count < 4 ? false : argument[3]
-	var socketID = argument_count < 5 ? undefined : argument[4]
-
-	var buffer = net_make_buffer(code, data, bufferType, bufferInfo, coopInfo)
-
-	if (isUDP != false)
-		network_send_udp(socketID, isUDP, PORT_UDP, buffer, buffer_tell(buffer))
-	else
-		network_send_packet(socketID, buffer, buffer_tell(buffer))
-			
-	buffer_delete(buffer)
-}
-
-/// @param socketID
-/// @param code
-/// @param data* (req: bufferType)
-/// @param bufferType*
-/// @param isUDP*
-/// @param bufferInfo*
-/// @param coopInfo*
-function net_server_send() {
-	var socketID = argument[0]
-	var code = argument[1]
-	var bufferInfo = argument_count < 6 ? BUFFER_INFO_DEFAULT : argument[5]
-	var coopInfo = argument_count < 7 ? BUFFER_INFO_DEFAULT : argument[6]
-	var data = argument_count < 3 ? 0 : argument[2]
-	var buffer = undefined
-	
-	var bufferType = argument_count < 4 ? BUFFER_TYPE_BOOL : argument[3]
-	var isUDP = argument_count < 5 ? false : argument[4]
-
-	var buffer = net_make_buffer(code, data, bufferType, bufferInfo, coopInfo)
-			
-	if (isUDP) {
-		var _playerRow = db_get_row(global.DB_TABLE_clients, socketID)
-		if (_playerRow != undefined)
-			network_send_udp(socketID, _playerRow[? CLIENTS_IP], PORT_UDP_COOP, buffer, buffer_tell(buffer))
-	}
-	else
-		network_send_packet(socketID, buffer, buffer_tell(buffer))
-
-	buffer_delete(buffer)
-}
-
 
 function net_make_buffer(code, data, bufferType, bufferinfo, coopInfo) {
 	var buffer = buffer_create(40, buffer_grow, 1)

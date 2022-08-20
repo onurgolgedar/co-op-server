@@ -1,10 +1,10 @@
 var port = async_load[? "port"]
 if (port == PORT_TCP_COOP or port == PORT_UDP_COOP or port == PORT_TCP or port == PORT_UDP) {
-	load_buffer = async_load[? "buffer"]
-	load_id = async_load[? "id"]
-	load_type = async_load[? "type"]
-	load_socketID = async_load[? "socket"]
-	load_ip = async_load[? "ip"]
+	var load_buffer = async_load[? "buffer"]
+	var load_id = async_load[? "id"]
+	var load_type = async_load[? "type"]
+	var load_socketID = async_load[? "socket"]
+	var load_ip = async_load[? "ip"]
 	
 	switch(load_type)
 	{		
@@ -12,6 +12,7 @@ if (port == PORT_TCP_COOP or port == PORT_UDP_COOP or port == PORT_TCP or port =
 			var data = net_buffer_read(load_buffer)
 			if (data != undefined)
 				_net_receive_packet(data[0], data[1], load_id, data[2], net_buffer_get_type_reverse(data[4]), async_load, data[3])
+			buffer_delete(load_buffer)	
 			break
 		
 		case network_type_connect:

@@ -83,6 +83,7 @@ function _net_receive_packet(code, pureData, socketID_sender, bufferInfo = BUFFE
 			/*								    ANALYZE AND REDIRECT        						   */
 			/*-----------------------------------------------------------------------------------------*/
 			case _CODE_SIGNUP:
+				// This is normally a server-side code. It is redirected differently by using "BUFFER_INFO_DEFAULT-1 redirection trick" so that it will be taken as CO-OP code.
 				var row_host = undefined
 
 				var ds_keys = ds_map_keys_to_array(global.DB_TABLE_clients.rows)
@@ -96,24 +97,25 @@ function _net_receive_packet(code, pureData, socketID_sender, bufferInfo = BUFFE
 					}
 				}
 				
-				// This redirection is tricky because a bypass needed over CODE_SIGNUP_COOP. The code is redirected as its co-op version.
-				net_server_send(row_host[? CLIENTS_SOCKETID], CODE_SIGNUP_COOP, json_stringify(data), bufferType, false, BUFFER_INFO_DEFAULT, socketID_sender)
+				// This redirection is tricky because a bypass needed over CODE_SIGNUP_COOP. The code is redirected as its co-op version. BUFFER_INFO_DEFAULT-1's reason is the coop redirection. See #44871 tag in the game's project.
+				if (row_host != undefined)
+					net_server_send(row_host[? CLIENTS_SOCKETID], CODE_SIGNUP_COOP, json_stringify(data), bufferType, false,, BUFFER_INFO_DEFAULT-1, socketID_sender)
 				break
 			/*-----------------------------------------------------------------------------------------*/
 			/*-----------------------------------------------------------------------------------------*/
 			case CODE_CONNECT:
 				db_set_row_value(global.DB_TABLE_clients, coopInfo, CLIENTS_SOCKETID_IN_HOST, data)
-				net_server_send(coopInfo, code, data, bufferType, false, bufferInfo, coopInfo)
+				net_server_send(coopInfo, code, data, bufferType, false,, bufferInfo, coopInfo)
 				break
 			/*-----------------------------------------------------------------------------------------*/
 			/*-----------------------------------------------------------------------------------------*/
 			default:
 				if (isSenderHost) {
 					if (coopInfo != undefined)
-						net_server_send(coopInfo, code, data, bufferType, false, bufferInfo, coopInfo)
+						net_server_send(coopInfo, code, data, bufferType, false,, bufferInfo, coopInfo)
 				}
 				else
-					net_server_send(sendersHost, code, data, bufferType, isUDP ? ip_sender : false, bufferInfo, sendersSocketID_inHost)
+					net_server_send(sendersHost, code, data, bufferType, isUDP ? ip_sender : false,, bufferInfo, sendersSocketID_inHost)
 				break
 		}
 		

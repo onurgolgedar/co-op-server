@@ -9,9 +9,13 @@ if (port == PORT_TCP_COOP or port == PORT_UDP_COOP or port == PORT_TCP or port =
 	switch(load_type)
 	{		
 		case network_type_data:
-			var data = net_buffer_read(load_buffer)
-			if (data != undefined)
+			var data
+			buffer_seek(load_buffer, buffer_seek_start, 0)
+			while (buffer_tell(load_buffer) < buffer_get_size(load_buffer)) {
+				data = net_buffer_read(load_buffer)
+				if (data != undefined)
 				_net_receive_packet(data[0], data[1], load_id, data[2], net_buffer_get_type_reverse(data[4]), async_load, data[3])
+			}
 			buffer_delete(load_buffer)	
 			break
 		

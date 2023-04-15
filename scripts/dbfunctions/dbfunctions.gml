@@ -136,7 +136,7 @@ function db_draw_table(table_x, table_y, table, columnCount) {
 			for (var i = 0; i < columnCount; i++) {
 				var row = table.rows[? ds_keys[j]]
 			
-				draw_text(table_x+i*160, table_y+40+j*30, row[? i])
+				draw_text(table_x+i*160, table_y+40+j*30, row[? i] ?? "")
 				draw_line(table_x+i*160, table_y+40+j*30+30, table_x+150+i*160, table_y+40+j*30+30)
 			}
 		}

@@ -1,0 +1,14 @@
+{
+  "FolderOrderSettings": [],
+  "ResourceOrderSettings": [
+    {"name":"contServer","order":1,"path":"objects/contServer/contServer.yy",},
+    {"name":"ReceivePacket","order":5,"path":"scripts/ReceivePacket/ReceivePacket.yy",},
+    {"name":"DBEvents","order":2,"path":"scripts/DBEvents/DBEvents.yy",},
+    {"name":"ServerFunctions","order":1,"path":"scripts/ServerFunctions/ServerFunctions.yy",},
+    {"name":"NetFunctions","order":1,"path":"scripts/NetFunctions/NetFunctions.yy",},
+    {"name":"NetCodes","order":2,"path":"scripts/NetCodes/NetCodes.yy",},
+    {"name":"NetConfig","order":3,"path":"scripts/NetConfig/NetConfig.yy",},
+    {"name":"DBTables","order":3,"path":"scripts/DBTables/DBTables.yy",},
+    {"name":"NetEvents","order":4,"path":"scripts/NetEvents/NetEvents.yy",},
+  ],
+}
